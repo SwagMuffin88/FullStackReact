@@ -4,3 +4,12 @@ GET {{FullStackReact_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+POST {{FullStackReact_HostAddress}}/api/Planets/new
+Content-Type: application/json
+
+{
+    "name": "Hello",
+    "description": "world",
+    "type": "big planet",
+    "mass": 67
+}

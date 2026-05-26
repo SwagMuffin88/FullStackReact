@@ -2,6 +2,7 @@ using FullStackReact.DbConfig;
 using FullStackReact.Entities;
 using FullStackReact.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FullStackReact.Controllers;
 
@@ -20,7 +21,7 @@ public class PlanetsController : ControllerBase
     public IActionResult GetAllPlanets()
     {
         var result = _dbContext.Planets
-            .Select(x => new PlanetsListViewModel
+            .Select(x => new PlanetViewModel
             {
                PlanetId =  x.PlanetId,
                Name = x.Name,
@@ -31,8 +32,22 @@ public class PlanetsController : ControllerBase
         return Ok(result);
     }
 
+    private async Task<PlanetViewModel?> GetPlanet(Guid planetId)
+    {
+        return await _dbContext.Planets
+            .Where(p => p.PlanetId == planetId)
+            .Select(p => new PlanetViewModel()
+            {
+                PlanetId = p.PlanetId,
+                Name = p.Name,
+                Description = p.Description,
+                Type = p.Type,
+                Mass = p.Mass
+            }).FirstOrDefaultAsync();
+    }
+
     [HttpPost("new")]
-    public async Task<IActionResult> AddNewPlanet([FromBody] PlanetsListViewModel planet)
+    public async Task<IActionResult> AddNewPlanet([FromBody] PlanetViewModel planet)
     {
         try
         {
@@ -53,6 +68,26 @@ public class PlanetsController : ControllerBase
         {
             Console.WriteLine(e.StackTrace);
             return BadRequest("Could not save planet to db: "  + e.Message);
+        }
+    }
+    
+    [HttpGet("{planetId:guid}")]
+    public async Task<IActionResult> GetPlanetDetails(Guid planetId)
+    {
+        try
+        {
+            var planetViewModel = await GetPlanet(planetId);
+            
+            if (planetViewModel == null)
+            {
+                return NotFound("Could not find planet with id " + planetId);
+            }
+            return Ok(planetViewModel);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.StackTrace);
+            return BadRequest("Could not get planet with id " + planetId + " from db: "  + e.Message);
         }
     }
 }

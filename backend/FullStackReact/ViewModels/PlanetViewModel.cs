@@ -1,6 +1,6 @@
 namespace FullStackReact.ViewModels;
 
-public class PlanetsListViewModel
+public class PlanetViewModel
 {
     public Guid PlanetId { get; set; }
     public string Name { get; set; } = string.Empty;

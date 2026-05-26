@@ -31,19 +31,25 @@ public class PlanetsController : ControllerBase
             });
         return Ok(result);
     }
-
-    private async Task<PlanetViewModel?> GetPlanet(Guid planetId)
+    
+    private async Task<Planet?> GetPlanet(Guid planetId)
     {
         return await _dbContext.Planets
-            .Where(p => p.PlanetId == planetId)
-            .Select(p => new PlanetViewModel()
-            {
-                PlanetId = p.PlanetId,
-                Name = p.Name,
-                Description = p.Description,
-                Type = p.Type,
-                Mass = p.Mass
-            }).FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(p => p.PlanetId == planetId);
+    }
+
+    private async Task<PlanetViewModel?> GetPlanetAsViewModel(Guid planetId)
+    {
+        var planet = await GetPlanet(planetId);
+        
+        return new PlanetViewModel
+        {
+            PlanetId = planet.PlanetId,
+            Name = planet.Name,
+            Description = planet.Description,
+            Type = planet.Type,
+            Mass = planet.Mass
+        };
     }
 
     [HttpPost("new")]
@@ -76,7 +82,7 @@ public class PlanetsController : ControllerBase
     {
         try
         {
-            var planetViewModel = await GetPlanet(planetId);
+            var planetViewModel = await GetPlanetAsViewModel(planetId);
             
             if (planetViewModel == null)
             {
@@ -88,6 +94,34 @@ public class PlanetsController : ControllerBase
         {
             Console.WriteLine(e.StackTrace);
             return BadRequest("Could not get planet with id " + planetId + " from db: "  + e.Message);
+        }
+    }
+    
+    [HttpPut("{planetId:guid}")]
+    public async Task<IActionResult> Update(Guid planetId, [FromBody] PlanetViewModel model)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(model.Name))
+            {
+                return BadRequest("Name is required");
+            }
+            
+            var planet = await GetPlanet(planetId);
+            if (planet == null) return NotFound();
+
+            planet.Name = model.Name;
+            planet.Description = model.Description;
+            planet.Type = model.Type;
+            planet.Mass = model.Mass;
+
+            await _dbContext.SaveChangesAsync();
+            return Ok(new { message = "Updating planet was successful!" });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.StackTrace);
+            return BadRequest("Could not update planet in db: " + e.Message);
         }
     }
 }
